@@ -54,9 +54,9 @@ class Lagrangian:
 
     def solve(self, lp: LinearProgram, y):
         """
-        returns argmin_{x∈Ω}L(x,y)
+        returns argmin_{x∈Ω}L(x,y) for simple box constraints
         """
-        pass
+        return (lp.c - lp.A.T @ y < 0).astype(float)
 
 class AugmentedLagrangian:
     """
@@ -129,12 +129,28 @@ class BALA:
                 x = w
                 y = z
             else:
-                pass # null step (nothing is updated)
+                pass # null step (implicitally w=w)
             
             v = self.lagr.solve(lp, z)
 
 def main():
-    pass
+    # problem of the form 
+    # min c^Tx s.t. Ax=b, 0≤x≤1 (box constraints)
+    c = np.array([1.0, 2.0])
+    A = np.array([[1.0, 1.0]]) # with these initializations, optimal solution is x = (0.5, 0)
+    b = np.array([0.5])
+
+    x_init = np.array([0.0, 0.0])
+    
+    lp = LinearProgram(x_init, c, A, b)
+
+    solver = BALA(rho=1.0, beta=0.3)
+
+    res = solver.solve(lp)
+
+    print(f"Primal Solution x: {res}")
+    print(f"Constraint Violation: {np.linalg.norm(A @ res - b)}")
+    print(f"Objective Value: {np.inner(c, res)}")
 
 if __name__=="__main__":
     main()
