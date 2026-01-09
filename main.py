@@ -12,11 +12,57 @@ class LinearProgram:
         self.b = b
         self.x = x
 
+class DualLagrange:
+    def __init__(self):
+        pass
+
+    def solve(self, lp: LinearProgram, v, y):
+        """
+        returns -min_{x∈Ω} L(x,y) using v=argmin_{x∈Ω}⟨c-A^Ty,x⟩+⟨y,b⟩
+        """
+        left_term = np.inner(lp.c, v)
+        right_term = np.inner(y, lp.b - lp.A @ v)
+        return -left_term - right_term
+
+class FeasibleLagrangian:
+    """
+    Standard Lagrangian solver for Linear Programs of form
+    Minimize: c^Tx
+    Subject To: Ax = b
+
+    Over a set Ω_k=conv(v_k,w_k)
+    """
+    def __init__(self):
+        pass
+
+    def solve(self, lp: LinearProgram, y, w):
+        """
+        returns -min_{x∈Ω} L(x,y)
+        """
+        left_term = np.inner(lp.c, w)
+        right_term = np.inner(y, lp.b - lp.A @ w)
+        return -left_term - right_term
+
+class Lagrangian:
+    """
+    Standard Lagrangian solver for Linear Programs of form
+    Minimize: c^Tx
+    Subject To: Ax = b
+    """
+    def __init__(self):
+        pass
+
+    def solve(self, lp: LinearProgram, y):
+        """
+        returns argmin_{x∈Ω}L(x,y)
+        """
+        pass
+
 class AugmentedLagrangian:
     """
     Augmented Lagrangian solver for Linear Programs of form
     Minimize: c^Tx
-    Subject To: A_eq x = b_eq
+    Subject To: Ax = b
 
     Over a set Ω_k=conv(v_k,w_k)
     """
@@ -50,11 +96,42 @@ class BALA:
     """
     An implementation of BALA for Linear Programs that uses a straight line feasible set approximation
     """
-    def __init__(self, rho):
-        aug_lag = AugmentedLagrangian(rho)
-        
+    def __init__(self, rho, beta):
+        self.aug_lagr: AugmentedLagrangian = AugmentedLagrangian(rho)
+        self.lagr: Lagrangian = Lagrangian()
+        self.dual_lagr: DualLagrange = DualLagrange()
+        self.feas_lagr: FeasibleLagrangian = FeasibleLagrangian()
+
+        self.beta = beta # descent parameter
+        self.rho = rho
+
+        self.max_iters = 1000
+
+    def check(self, lp: LinearProgram, y, z, v, w):
+        lhs = self.dual_lagr.solve(lp, y, v) - self.dual_lagr.solve(lp, z, v)
+        rhs = self.dual_lagr.solve(lp, y, v) - self.feas_lagr.solve(lp, z, w)
+        rhs = self.beta * rhs
+
+        return lhs >= rhs
+ 
     def solve(self, lp: LinearProgram):
-        pass
+        x = lp.x
+        y = np.zeros(lp.b.shape[0])
+
+        w = x.copy()
+        v = self.lagr.solve(lp, y)
+
+        for i in range(self.max_iters):
+            w = self.aug_lagr.solve(lp, w, v, y) # primal candidate
+            z = y + self.rho * (lp.b - lp.A @ w) # dual candidate
+
+            if self.check(lp, y, z, v, w): # serious step
+                x = w
+                y = z
+            else:
+                pass # null step (nothing is updated)
+            
+            v = self.lagr.solve(lp, z)
 
 def main():
     pass
