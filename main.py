@@ -16,7 +16,7 @@ class DualLagrange:
     def __init__(self):
         pass
 
-    def solve(self, lp: LinearProgram, v, y):
+    def solve(self, lp: LinearProgram, y, v):
         """
         returns -min_{x∈Ω} L(x,y) using v=argmin_{x∈Ω}⟨c-A^Ty,x⟩+⟨y,b⟩ and the fact that g(⋅)=-L(v_{k+1},⋅)
         """
@@ -82,6 +82,10 @@ class AugmentedLagrangian:
 
     def solve(self, lp: LinearProgram, v_k, w_k, y_k):
         d = v_k - w_k
+
+        if np.linalg.norm(d) < 1e-10: # No direction to optimize along, return w_k
+            return w_k
+
         denom = self.rho * np.linalg.norm(lp.A @ d, ord=2)**2
 
         temp_left = np.inner(lp.A.T @ (lp.b - lp.A @ w_k), d) # left numerator term
@@ -109,7 +113,7 @@ class BALA:
         self.beta = beta # descent parameter
         self.rho = rho
 
-        self.max_iters = 1000
+        self.max_iters = 10
 
     def check(self, lp: LinearProgram, y, z, v, w):
         lhs = self.dual_lagr.solve(lp, y, v) - self.dual_lagr.solve(lp, z, v)
@@ -125,16 +129,9 @@ class BALA:
         w = x.copy()
         v = self.lagr.solve(lp, y)
 
-        for i in range(self.max_iters):
-            w = self.aug_lagr.solve(lp, w, v, y) # primal candidate
-            z = y + self.rho * (lp.b - lp.A @ w) # dual candidate
-
-            if self.check(lp, y, z, v, w): # serious step
-                x = w
-                y = z
-            else:
-                pass # null step (implicitally w=w)
-            
+        for _ in range(self.max_iters):
+            w = self.aug_lagr.solve(lp, v, w, y) 
+            z = y + self.rho * (lp.b - lp.A @ w)
             v = self.lagr.solve(lp, z)
 
 def box_constraint_test():
@@ -144,7 +141,7 @@ def box_constraint_test():
     A = np.array([[1.0, 1.0]]) # with these initializations, optimal solution is x = (0.5, 0)
     b = np.array([0.5])
 
-    x_init = np.array([0.0, 0.0])
+    x_init = np.array([1.0, 1.0])
     
     lp = LinearProgram(x_init, c, A, b)
 
