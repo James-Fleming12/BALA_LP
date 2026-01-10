@@ -18,7 +18,7 @@ class DualLagrange:
 
     def solve(self, lp: LinearProgram, v, y):
         """
-        returns -min_{x∈Ω} L(x,y) using v=argmin_{x∈Ω}⟨c-A^Ty,x⟩+⟨y,b⟩
+        returns -min_{x∈Ω} L(x,y) using v=argmin_{x∈Ω}⟨c-A^Ty,x⟩+⟨y,b⟩ and the fact that g(⋅)=-L(v_{k+1},⋅)
         """
         left_term = np.inner(lp.c, v)
         right_term = np.inner(y, lp.b - lp.A @ v)
