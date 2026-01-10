@@ -32,16 +32,20 @@ class FeasibleLagrangian:
 
     Over a set Ω_k=conv(v_k,w_k)
     """
-    def __init__(self):
-        pass
+    def __init__(self, rho):
+        self.rho = rho
 
-    def solve(self, lp: LinearProgram, y, w):
+    def solve(self, lp: LinearProgram, z, w, y):
         """
-        returns -min_{x∈Ω} L(x,y)
+        returns -min_{x∈Ω} L(x,y) using g_k(z) = -Lρ(w, y) - (1/2ρ)||z - y||^2
         """
-        left_term = np.inner(lp.c, w)
-        right_term = np.inner(y, lp.b - lp.A @ w)
-        return -left_term - right_term
+        lagr = np.inner(lp.c, w) + np.inner(y, lp.b - lp.A @ w)
+        penalty = (self.rho / 2) * np.linalg.norm(lp.b - lp.A @ w)**2
+
+        aug_val = lagr + penalty
+
+        right_term = (1 / (2 * self.rho)) * np.linalg.norm(z - y)**2
+        return -aug_val - right_term
 
 class PrimalOracle:
     """
@@ -100,7 +104,7 @@ class BALA:
         self.aug_lagr: AugmentedLagrangian = AugmentedLagrangian(rho)
         self.lagr: PrimalOracle = PrimalOracle()
         self.dual_lagr: DualLagrange = DualLagrange()
-        self.feas_lagr: FeasibleLagrangian = FeasibleLagrangian()
+        self.feas_lagr: FeasibleLagrangian = FeasibleLagrangian(rho)
 
         self.beta = beta # descent parameter
         self.rho = rho
@@ -109,7 +113,7 @@ class BALA:
 
     def check(self, lp: LinearProgram, y, z, v, w):
         lhs = self.dual_lagr.solve(lp, y, v) - self.dual_lagr.solve(lp, z, v)
-        rhs = self.dual_lagr.solve(lp, y, v) - self.feas_lagr.solve(lp, z, w)
+        rhs = self.dual_lagr.solve(lp, y, v) - self.feas_lagr.solve(lp, z, w, y)
         rhs = self.beta * rhs
 
         return lhs >= rhs
