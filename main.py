@@ -137,7 +137,7 @@ class BALA:
             
             v = self.lagr.solve(lp, z)
 
-def main():
+def box_constraint_test():
     # problem of the form 
     # min c^Tx s.t. Ax=b, 0≤x≤1 (box constraints)
     c = np.array([1.0, 2.0])
@@ -155,6 +155,9 @@ def main():
     print(f"Primal Solution x: {res}")
     print(f"Constraint Violation: {np.linalg.norm(A @ res - b)}")
     print(f"Objective Value: {np.inner(c, res)}")
+
+def main():
+    box_constraint_test()
 
 if __name__=="__main__":
     main()
