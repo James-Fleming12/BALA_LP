@@ -83,7 +83,7 @@ class AugmentedLagrangian:
     def solve(self, lp: LinearProgram, v_k, w_k, y_k):
         d = v_k - w_k
 
-        if np.linalg.norm(d) < 1e-10: # No direction to optimize along, return w_k
+        if np.linalg.norm(d) < 1e-10: # no direction to optimize along, return w_k
             return w_k
 
         denom = self.rho * np.linalg.norm(lp.A @ d, ord=2)**2
@@ -104,7 +104,7 @@ class BALA:
     """
     An implementation of BALA for Linear Programs that uses a straight line feasible set approximation
     """
-    def __init__(self, rho, beta):
+    def __init__(self, rho, beta, epsilon=1e-6):
         self.aug_lagr: AugmentedLagrangian = AugmentedLagrangian(rho)
         self.lagr: PrimalOracle = PrimalOracle()
         self.dual_lagr: DualLagrange = DualLagrange()
@@ -112,17 +112,23 @@ class BALA:
 
         self.beta = beta # descent parameter
         self.rho = rho
+        self.epsilon = epsilon
 
-        self.max_iters = 10
+        self.max_iters = 100
 
     def check(self, lp: LinearProgram, y, z, v, w):
-        lhs = self.dual_lagr.solve(lp, y, v) - self.dual_lagr.solve(lp, z, v)
-        rhs = self.dual_lagr.solve(lp, y, v) - self.feas_lagr.solve(lp, z, w, y)
+        gy = self.dual_lagr.solve(lp, y, v)
+        g_ky = self.feas_lagr.solve(lp, z, w, y)
+
+        lhs = gy - self.dual_lagr.solve(lp, z, v)
+        rhs = gy - g_ky
         rhs = self.beta * rhs
 
-        return lhs >= rhs
+        return (lhs >= rhs), gy, g_ky # returning other calculations for stopping criterion
  
     def solve(self, lp: LinearProgram):
+        iters = 1
+
         x = lp.x
         y = np.zeros(lp.b.shape[0])
 
@@ -130,15 +136,24 @@ class BALA:
         v = self.lagr.solve(lp, y)
 
         for _ in range(self.max_iters):
-            w = self.aug_lagr.solve(lp, v, w, y) 
-            z = y + self.rho * (lp.b - lp.A @ w)
-            v = self.lagr.solve(lp, z)
+            w = self.aug_lagr.solve(lp, v, w, y) # primal candidate
+            z = y + self.rho * (lp.b - lp.A @ w) # dual candidate
 
-            if self.check(lp, y, z, v, w):
+            v = self.lagr.solve(lp, z) # calculating v early for Lagrangian shortcut
+
+            check, gy, g_ky = self.check(lp, y, z, v, w)
+
+            if check: # serious step
                 y = z
                 x = w
-            else:
+            else: # null step (all variables remain the same)
                 pass
+
+            if np.linalg.norm(gy - g_ky) < self.epsilon: # stopping criterion inspired by other Proximal Bundle Method stopping criterions
+                print(f"Converged in {iters} iterations")
+                return x
+            
+            iters += 1
 
         return x
 
