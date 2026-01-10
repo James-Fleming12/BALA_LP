@@ -134,7 +134,15 @@ class BALA:
             z = y + self.rho * (lp.b - lp.A @ w)
             v = self.lagr.solve(lp, z)
 
-def box_constraint_test():
+            if self.check(lp, y, z, v, w):
+                y = z
+                x = w
+            else:
+                pass
+
+        return x
+
+def box_constrained_set():
     # problem of the form 
     # min c^Tx s.t. Ax=b, 0≤x≤1 (box constraints)
     c = np.array([1.0, 2.0])
@@ -154,7 +162,7 @@ def box_constraint_test():
     print(f"Objective Value: {np.inner(c, res)}")
 
 def main():
-    box_constraint_test()
+    box_constrained_set()
 
 if __name__=="__main__":
     main()
