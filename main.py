@@ -43,9 +43,9 @@ class FeasibleLagrangian:
         right_term = np.inner(y, lp.b - lp.A @ w)
         return -left_term - right_term
 
-class Lagrangian:
+class PrimalOracle:
     """
-    Standard Lagrangian solver for Linear Programs of form
+    Solver for primal values given dual iterates of an LP of the form
     Minimize: c^Tx
     Subject To: Ax = b
     """
@@ -98,7 +98,7 @@ class BALA:
     """
     def __init__(self, rho, beta):
         self.aug_lagr: AugmentedLagrangian = AugmentedLagrangian(rho)
-        self.lagr: Lagrangian = Lagrangian()
+        self.lagr: PrimalOracle = PrimalOracle()
         self.dual_lagr: DualLagrange = DualLagrange()
         self.feas_lagr: FeasibleLagrangian = FeasibleLagrangian()
 
