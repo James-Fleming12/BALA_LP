@@ -37,8 +37,7 @@ class FeasibleLagrangian:
 
     def solve(self, lp: LinearProgram, z, w, y):
         """
-        returns -min_{x∈Ω_k} L(x,y) using g_k(z) = -Lρ(w, y) - (1/2ρ)||z - y||^2
-        Using the equivalence in the proof of Section B.1
+        returns -min_{x∈Ω_k} L(x,y) using g_k(z) = -Lρ(w, y) - (1/2ρ)||z - y||^2 from Appendix A.2
         """
         lagr = np.inner(lp.c, w) + np.inner(y, lp.b - lp.A @ w)
         penalty = (self.rho / 2) * np.linalg.norm(lp.b - lp.A @ w)**2
